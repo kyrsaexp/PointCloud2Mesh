@@ -77,5 +77,13 @@ def parametrization(numpy_file, save_to, neighbor_nums):
 
 def plot_pts(numpy_file):
     arr = np.load(numpy_file)
-    plt.scatter(arr[:, 0], arr[:, 1])
+
+    # check dimension of points
+    if arr.shape[1] == 2:
+        plt.scatter(arr[:, 0], arr[:, 1])
+    elif arr.shape[1] == 3:
+        fig = plt.figure()
+        ax = Axes3D(fig)
+        ax.scatter(arr[:, 0], arr[:, 1], arr[:, 2])
+
     plt.show()
