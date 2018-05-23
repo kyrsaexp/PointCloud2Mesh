@@ -14,13 +14,12 @@ def parametrization(numpy_file, save_to, neighbor_nums):
     :param neighbor_nums: List of neighbors' number. Ex. [20, 25, 30]
     :return:
     """
-
     # distance between point1 and point2
     def dist(pt1, pt2):
         return np.sqrt(np.sum((pt1 - pt2) * (pt1 - pt2)))
 
     # minimization function = Eq.1
-    def min_func(w):
+    def min_func(w, row):
         return np.linalg.norm(D[row] - np.sum(w.reshape((-1, 1)) * D[N[row, :neighbor_num]], axis=0))
 
     # import points from numpy file
@@ -46,13 +45,13 @@ def parametrization(numpy_file, save_to, neighbor_nums):
         # _W - partial matrix of W representing neighbor_num neighbor's weights
         # used to avoid constraint #2 for Eq.1
         w0 = np.ones(neighbor_num, float) / neighbor_num
-        # print ' w0:', w0.shape
+        # print(' w0:', w0.shape)
 
         # constraint #1 for Eq.1
         constraints = [{'type': 'eq', 'fun': lambda w_row: np.sum(w_row) - 1.}]
 
         # evaluate _W
-        _W = np.array([minimize(min_func, w0, method='SLSQP', constraints=constraints)['x'] for row in range(num)])
+        _W = np.array([minimize(min_func, w0, args=(row,), method='SLSQP', constraints=constraints)['x'] for row in range(num)])
         # print '_W:', _W.shape
 
         # initialize and save W
@@ -69,19 +68,14 @@ def parametrization(numpy_file, save_to, neighbor_nums):
 
         # find 2 and 3 smallest eigenvectors = Eq.7
         eigvalues, eigvectors = LA.eigs(M, 3, sigma=0)
-        print 'eigvectors:', eigvectors.shape
+        print('eigvectors:', eigvectors.shape)
         # print 'eigvalues:', eigvalues
 
         # save points parameter space coordinates
         P = eigvectors[:, 1:3].real
         np.save('%s/%s_p_%03d.npy' % (save_to, obj_name, neighbor_num), P)
 
-        
 def plot_pts(numpy_file):
     arr = np.load(numpy_file)
     plt.scatter(arr[:, 0], arr[:, 1])
     plt.show()
-
-
-parametrization('/home/users/a.chirkova/Desktop/test/tube1_test.npy', '/home/users/a.chirkova/Desktop/test', [15])
-plot_pts('/home/users/a.chirkova/Desktop/test/tube1_test_p_015.npy')
