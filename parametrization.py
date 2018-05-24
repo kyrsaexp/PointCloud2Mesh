@@ -3,6 +3,7 @@ from scipy.optimize import minimize
 import scipy.sparse.linalg as LA
 import os
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def parametrization(numpy_file, save_to, neighbor_nums):
