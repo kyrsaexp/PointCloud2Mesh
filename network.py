@@ -44,41 +44,49 @@ def load_data_from_file(f_name, val_split=0.2):
         return train_data, val_data
 
 
-def train(src_f_name, tar_f_name, weights_path, lr = 0.001, loss='mse', b_size=10, epochs=100, val_split=0.2):
-    """
-
-    :param src_f_name: полный путь к текстовому файлу,в котором содержится список путей к 2D numpy файлам
-    :param tar_f_name: полный путь к текстовому файлу,в котором содержится список путей к 3D numpy файлам
-    пути к файлам должны идти в таком же порядке, как и в src_f_name
-    :return:
-    """
-
+def train(src_f_name, tar_f_name, model_dir, lr=1e-2, loss='mse', b_size=100, epochs=5000, val_split=0.2):
     # collect source data
-    src_train_data, src_val_data = load_data_from_file(src_f_name, val_split)
+    src_train_data = load_data_from_file(src_f_name)
+    print('SOURCE DATA SHAPE:', src_train_data.shape)
 
     # collect target data
-    tar_train_data, tar_val_data = load_data_from_file(tar_f_name, val_split)
+    tar_train_data = load_data_from_file(tar_f_name)
+    print('TARGET DATA SHAPE:', tar_train_data.shape)
 
     ###################
     # initialize model
     net = get_model()
+    net.summary()
     opt = Adam(lr=lr)
     net.compile(opt, loss)
 
     #################
     # train
-    net.fit(src_train_data, tar_train_data, b_size, epochs, validation_data=(src_val_data, tar_val_data))
+    weights_path = os.path.join(model_dir, 'weights.h5')
+    checkpoints = os.path.join(model_dir, 'epoch_{epoch:04d}_loss_{loss:.4f}.h5')
+    callbacks = [ModelCheckpoint(checkpoints, period=10)]
+
+    net.fit(src_train_data, tar_train_data, b_size, epochs, callbacks=callbacks, validation_split=val_split)
     net.save_weights(weights_path)
 
 
-def predict(weights_path, test_f_name, save_to):
-    # collect test data
-    test_data, _ = load_data_from_file(test_f_name, 0)
-
+def predict(model_dir, test_f_name, save_to):
     # load model
+    weights_path = os.path.join(model_dir, 'weights.h5')
+
+    if not os.path.exists(weights_path):
+        weights_path = sorted(glob.glob(model_dir + '/*.h5'))[-1]
+
     net = get_model()
     net.load_weights(weights_path)
-    
+
     # predict
-    pred_data = net.predict(test_data)
-    np.save(save_to, pred_data)
+    with open(test_f_name) as f:
+        for fname in f.read().splitlines():
+            print('predicting', fname)
+            test_data = np.load(fname)
+            pred_data = net.predict(test_data)
+
+            name = 'pred_' + os.path.basename(fname)
+            pred_fname = os.path.join(save_to_dir, name)
+            np.save(pred_fname, pred_data)
